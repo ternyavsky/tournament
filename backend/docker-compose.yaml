@@ -1,0 +1,104 @@
+services:
+  minio:
+    container_name: tour_minio
+    image: minio/minio
+    ports:
+      - 9000:9000
+      - 9001:9001
+    volumes:
+      - tour-minio_storage:/data
+    env_file:
+      - .env
+    environment:
+      MINIO_ROOT_USER: ${POSTGRES_USER}
+      MINIO_ROOT_PASSWORD: ${POSTGRES_PASSWORD}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+    command: server --console-address ":9001" /data
+  postgres:
+    container_name: tour_postgres
+    image: postgres:latest
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - 5432:5432
+    volumes:
+      - tour-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - postgres
+  pgadmin:
+    container_name: tour_ppadmin
+    image: dpage/pgadmin4
+    env_file:
+      - '.env'
+    environment:
+      PGADMIN_DEFAULT_EMAIL: 'bookdb@book.com'
+      PGADMIN_DEFAULT_PASSWORD: ${POSTGRES_PASSWORD}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - tour-pgadmin-data:/var/lib/pgadmin
+    ports:
+      - '5050:80'
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 600M
+    networks:
+      - postgres
+  loki:
+    container_name: tour_loki
+    image: grafana/loki
+    ports:
+      - '3100:3100'
+    restart: unless-stopped
+  # grafana:
+  #   volumes:
+  #     - grafana_storage:/var/lib/grafana
+  #   image: grafana/grafana
+  #   ports:
+  #     - "3000:3000"
+  redis:
+    container_name: tour_redis
+    image: redis:latest
+    restart: always
+    ports:
+      - 6379:6379
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 60s
+      retries: 5
+      start_period: 10s
+  prometheus:
+    container_name: tour_prometheus
+    image: prom/prometheus
+    ports:
+      - '9090:9090'
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yaml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yaml'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+
+volumes:
+  tour-pgdata:
+  tour-pgadmin-data:
+  tour-minio_storage:
+  tout-grafana_storage:
+networks:
+  postgres:
+    driver: bridge
