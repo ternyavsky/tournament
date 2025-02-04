@@ -17,8 +17,6 @@ import { MinioService } from './config/s3/minio.service';
 import { IsUnique } from './common/shared/unique.validator';
 import { IsExist } from './common/shared/exist.validator';
 import { MailerModule } from '@nestjs-modules/mailer';
-import { SMTPConfig } from './config/smtp';
-import { MailModule } from './config/smtp/mail.module';
 import { BullModule } from '@nestjs/bull';
 import { BullConfig } from './config/bull';
 import { addTransactionalDataSource } from 'typeorm-transactional';
@@ -33,9 +31,6 @@ import { DepartmentsModule } from './departments/departments.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env'],
-    }),
-    MailerModule.forRootAsync({
-      useClass: SMTPConfig,
     }),
     PrometheusModule.registerAsync({
       useClass: PrometheusConfig,
@@ -57,7 +52,6 @@ import { DepartmentsModule } from './departments/departments.module';
       useClass: S3Config,
     }),
     UsersModule,
-    MailModule,
     AuthModule,
     RequestsModule,
     DepartmentsModule,
